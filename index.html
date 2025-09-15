@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador COVID - Markov</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="header-section text-center py-4 mb-4">
+                    <h1 class="display-4 fw-bold">Simulador COVID</h1>
+                    <p class="lead">Análise com Cadeias de Markov</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4 col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Configurações</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">População Inicial</label>
+                            <input type="number" class="form-control" id="populacao" value="1000000">
+                        </div>
+
+                        <h6 class="mt-4">Doente (Leve)</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small">Continua</label>
+                                <input type="number" class="form-control form-control-sm" id="d1" value="0.70" step="0.01">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Hospitaliza</label>
+                                <input type="number" class="form-control form-control-sm" id="d2" value="0.20" step="0.01">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Recupera</label>
+                                <input type="number" class="form-control form-control-sm" id="d3" value="0.0985" step="0.01">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Morre</label>
+                                <input type="number" class="form-control form-control-sm" id="d4" value="0.0015" step="0.01">
+                            </div>
+                        </div>
+
+                        <h6>Hospitalizado</h6>
+                        <div class="row g-2 mb-4">
+                            <div class="col-6">
+                                <label class="form-label small">Continua</label>
+                                <input type="number" class="form-control form-control-sm" id="h1" value="0.63" step="0.01">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Vira Doente</label>
+                                <input type="number" class="form-control form-control-sm" id="h2" value="0.30" step="0.01">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Recupera</label>
+                                <input type="number" class="form-control form-control-sm" id="h3" value="0.05" step="0.01">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Morre</label>
+                                <input type="number" class="form-control form-control-sm" id="h4" value="0.02" step="0.01">
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary w-100" onclick="executarSimulacao()" id="btnSimular">
+                            Simular
+                        </button>
+                        
+                        <div class="text-center mt-2" id="loading" style="display:none;">
+                            <div class="spinner-border spinner-border-sm" role="status"></div>
+                            <span class="ms-2">Calculando...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h6 class="card-title">Como funciona?</h6>
+                        <p class="small text-muted">
+                            <strong>Markov:</strong> O estado futuro depende só do atual.<br>
+                            <strong>Lei Grande Números:</strong> Com muitos casos, probabilidades viram estatísticas.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8 col-md-6">
+                <div class="row">
+                    <div class="col-12 col-lg-6 mb-3">
+                        <div class="card result-card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h2 class="card-title" id="totalRecuperados">0</h2>
+                                <p class="card-text">Recuperados</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-6 mb-3">
+                        <div class="card result-card bg-dark text-white">
+                            <div class="card-body text-center">
+                                <h2 class="card-title" id="totalMortos">0</h2>
+                                <p class="card-text">Mortos</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">📊 INFORMAÇÃO MAIS IMPORTANTE</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h2 class="display-4 text-danger fw-bold" id="picoPercentual">0%</h2>
+                        <p class="lead">da população hospitalizada simultaneamente no pico</p>
+                        <small class="text-muted">Este é o percentual crítico para dimensionamento hospitalar</small>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Análise dos Resultados</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td>Mortalidade:</td>
+                                        <td class="fw-bold" id="mortalidade">0%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Duração:</td>
+                                        <td class="fw-bold" id="duracao">0 dias</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Pico Hospital (absoluto):</td>
+                                        <td class="fw-bold" id="picoHospital">0</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert alert-info mb-0" id="recomendacao" style="display:none;">
+                                    <h6 class="alert-heading">Recomendação</h6>
+                                    <p class="mb-0">Construir <span id="leitosRecomendados" class="fw-bold"></span> leitos (+10% do pico)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6>Estatísticas Hospitalares Detalhadas</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td>Total de hospitalizações:</td>
+                                        <td class="fw-bold" id="totalHospitalizacoes">0</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Ocupação média dos leitos:</td>
+                                        <td class="fw-bold">
+                                            <span id="mediaOcupacao">0</span> 
+                                            (<span id="eficienciaHospitalar">0</span>% da capacidade máxima)
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td>Dias com ocupação >50% do pico:</td>
+                                        <td class="fw-bold">
+                                            <span id="diasAcima50">0</span> 
+                                            (<span id="pctAcima50">0</span>% do tempo)
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dias com ocupação >80% do pico:</td>
+                                        <td class="fw-bold">
+                                            <span id="diasAcima80">0</span> 
+                                            (<span id="pctAcima80">0</span>% do tempo)
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+              
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
